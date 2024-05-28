@@ -19,7 +19,7 @@ func GetTemperatureByCepHandler(w http.ResponseWriter, r *http.Request) {
 	resp, err := usecase.GetTemperatureByZipcode(cep)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Message, err.StatusCode)
 		return
 	}
 

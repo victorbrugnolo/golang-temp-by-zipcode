@@ -34,7 +34,12 @@ type WeatherApiResponse struct {
 	} `json:"current"`
 }
 
-func GetTemperatureByZipcode(zipcode string) (*GetTemperatureByZipcodeResponse, error) {
+type ErrorResponse struct {
+	StatusCode int    `json:"status_code"`
+	Message    string `json:"message"`
+}
+
+func GetTemperatureByZipcode(zipcode string) (*GetTemperatureByZipcodeResponse, *ErrorResponse) {
 	zipcodeData, err := getZipcodeData(zipcode)
 
 	if err != nil {
@@ -60,59 +65,71 @@ func GetTemperatureByZipcode(zipcode string) (*GetTemperatureByZipcodeResponse, 
 	return &getTemperatureByZipcodeResponse, nil
 }
 
-func getZipcodeData(zipcode string) (*ViaCepResponse, error) {
-	resp, err := http.Get("https://viacep.com.br/ws/" + zipcode + "/json")
+func getZipcodeData(zipcode string) (*ViaCepResponse, *ErrorResponse) {
+	url := "http://viacep.com.br/ws/" + url.PathEscape(zipcode) + "/json"
+	resp, err := http.Get(url)
 
 	if err != nil {
-		return nil, err
+		return nil, buildErrorResponse(http.StatusInternalServerError, err)
 	}
 
 	if resp.StatusCode == 404 {
-		return nil, errors.New("can not find zipcode")
+		return nil, buildErrorResponse(http.StatusUnprocessableEntity, errors.New("can not find zipcode"))
 	}
 
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 
 	if err != nil {
-		return nil, err
+		return nil, buildErrorResponse(http.StatusInternalServerError, err)
 	}
 
 	var viaCepResponse ViaCepResponse
 	err = json.Unmarshal(body, &viaCepResponse)
 
 	if err != nil {
-		return nil, err
+		return nil, buildErrorResponse(http.StatusInternalServerError, err)
+
 	}
+
+	fmt.Printf("viaCepResponse: %+v\n", viaCepResponse)
 
 	return &viaCepResponse, nil
 }
 
-func getWeatherData(city string) (*WeatherApiResponse, error) {
+func getWeatherData(city string) (*WeatherApiResponse, *ErrorResponse) {
 	url := fmt.Sprintf("https://api.weatherapi.com/v1/current.json?key=b5dde200e1bc40e5a61213318242805&q=%s&aqi=no", url.QueryEscape(city))
 	resp, err := http.Get(url)
 
 	if err != nil {
-		return nil, err
+		return nil, buildErrorResponse(http.StatusInternalServerError, err)
 	}
 
 	if resp.StatusCode == 400 {
-		return nil, errors.New("can not find temperature")
+		errorMessage := fmt.Sprintf("can not find weather for city %s", city)
+		return nil, buildErrorResponse(http.StatusNotFound, errors.New(errorMessage))
 	}
 
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 
 	if err != nil {
-		return nil, err
+		return nil, buildErrorResponse(http.StatusInternalServerError, err)
 	}
 
 	var weatherApiResponse WeatherApiResponse
 	err = json.Unmarshal(body, &weatherApiResponse)
 
 	if err != nil {
-		return nil, err
+		return nil, buildErrorResponse(http.StatusInternalServerError, err)
 	}
 
 	return &weatherApiResponse, nil
+}
+
+func buildErrorResponse(statusCode int, err error) *ErrorResponse {
+	return &ErrorResponse{
+		StatusCode: http.StatusInternalServerError,
+		Message:    err.Error(),
+	}
 }
