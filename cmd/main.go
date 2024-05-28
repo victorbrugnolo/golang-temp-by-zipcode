@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/victorbrugnolo/golang-temp-cep/internal/web"
+	"github.com/victorbrugnolo/golang-temp-zipcode/internal/web"
 )
 
 func main() {

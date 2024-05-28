@@ -1,4 +1,4 @@
-module github.com/victorbrugnolo/golang-temp-cep
+module github.com/victorbrugnolo/golang-temp-zipcode
 
 go 1.21.4
 
