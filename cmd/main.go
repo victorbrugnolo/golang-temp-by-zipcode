@@ -10,6 +10,6 @@ import (
 func main() {
 	r := mux.NewRouter()
 
-	r.HandleFunc("/{cep}/temperature", web.GetTemperatureByCepHandler)
+	r.HandleFunc("/{zipcode}/temperature", web.GetTemperatureByCepHandler)
 	http.ListenAndServe(":8080", r)
 }
