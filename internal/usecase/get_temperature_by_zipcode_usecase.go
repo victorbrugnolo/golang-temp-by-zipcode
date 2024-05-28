@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 )
 
 type GetTemperatureByZipcodeResponse struct {
@@ -92,13 +93,12 @@ func getZipcodeData(zipcode string) (*ViaCepResponse, *ErrorResponse) {
 
 	}
 
-	fmt.Printf("viaCepResponse: %+v\n", viaCepResponse)
-
 	return &viaCepResponse, nil
 }
 
 func getWeatherData(city string) (*WeatherApiResponse, *ErrorResponse) {
-	url := fmt.Sprintf("https://api.weatherapi.com/v1/current.json?key=b5dde200e1bc40e5a61213318242805&q=%s&aqi=no", url.QueryEscape(city))
+	key := os.Getenv("WEATHER_API_KEY")
+	url := fmt.Sprintf("https://api.weatherapi.com/v1/current.json?key=%s&q=%s&aqi=no", url.QueryEscape(key), url.QueryEscape(city))
 	resp, err := http.Get(url)
 
 	if err != nil {
@@ -129,7 +129,7 @@ func getWeatherData(city string) (*WeatherApiResponse, *ErrorResponse) {
 
 func buildErrorResponse(statusCode int, err error) *ErrorResponse {
 	return &ErrorResponse{
-		StatusCode: http.StatusInternalServerError,
+		StatusCode: statusCode,
 		Message:    err.Error(),
 	}
 }
