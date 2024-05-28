@@ -5,10 +5,19 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/victorbrugnolo/golang-temp-zipcode/internal/usecase"
 )
 
-func GetTemperatureByCepHandler(w http.ResponseWriter, r *http.Request) {
+type GetTemperatureByZipCodeHandler struct {
+	getTemperatureByZipCodeUseCase GetTemperatureByZipCodeUseCaseInterface
+}
+
+func NewGetTemperatureByZipCodeHandler(getTemperatureByZipCodeUseCase GetTemperatureByZipCodeUseCaseInterface) *GetTemperatureByZipCodeHandler {
+	return &GetTemperatureByZipCodeHandler{
+		getTemperatureByZipCodeUseCase: getTemperatureByZipCodeUseCase,
+	}
+}
+
+func (h *GetTemperatureByZipCodeHandler) GetTemperatureByZipcodeHandler(w http.ResponseWriter, r *http.Request) {
 	cep := mux.Vars(r)["zipcode"]
 
 	if cep == "" || len(cep) != 8 {
@@ -16,7 +25,7 @@ func GetTemperatureByCepHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := usecase.GetTemperatureByZipcode(cep)
+	resp, err := h.getTemperatureByZipCodeUseCase.Execute(cep)
 
 	if err != nil {
 		http.Error(w, err.Message, err.StatusCode)

@@ -1,53 +1,29 @@
 package usecase
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"io"
-	"net/http"
-	"net/url"
-	"os"
+	"github.com/victorbrugnolo/golang-temp-zipcode/internal/entity"
 )
 
-type GetTemperatureByZipcodeResponse struct {
-	TempC float64 `json:"temp_c"`
-	TempF float64 `json:"temp_f"`
-	TempK float64 `json:"temp_k"`
+type GetTemperatureByZipcodeUseCase struct {
+	zipCodeRepository    ZipCodeRepositoryInterface
+	weatherApiRepository WeatherApiRepositoryInterface
 }
 
-type ViaCepResponse struct {
-	Cep         string `json:"cep"`
-	Logradouro  string `json:"logradouro"`
-	Complemento string `json:"complemento"`
-	Bairro      string `json:"bairro"`
-	Localidade  string `json:"localidade"`
-	Uf          string `json:"uf"`
-	Ibge        string `json:"ibge"`
-	Gia         string `json:"gia"`
-	Ddd         string `json:"ddd"`
-	Siafi       string `json:"siafi"`
+func NewGetTemperatureByZipcodeUseCase(zipCodeRepository ZipCodeRepositoryInterface, weatherApiRepository WeatherApiRepositoryInterface) *GetTemperatureByZipcodeUseCase {
+	return &GetTemperatureByZipcodeUseCase{
+		zipCodeRepository:    zipCodeRepository,
+		weatherApiRepository: weatherApiRepository,
+	}
 }
 
-type WeatherApiResponse struct {
-	Current struct {
-		TempC float64 `json:"temp_c"`
-	} `json:"current"`
-}
-
-type ErrorResponse struct {
-	StatusCode int    `json:"status_code"`
-	Message    string `json:"message"`
-}
-
-func GetTemperatureByZipcode(zipcode string) (*GetTemperatureByZipcodeResponse, *ErrorResponse) {
-	zipcodeData, err := getZipcodeData(zipcode)
+func (g *GetTemperatureByZipcodeUseCase) Execute(zipcode string) (*entity.GetTemperatureByZipcodeResponse, *entity.ErrorResponse) {
+	zipcodeData, err := g.zipCodeRepository.GetZipcodeData(zipcode)
 
 	if err != nil {
 		return nil, err
 	}
 
-	weatherApiResponse, err := getWeatherData(zipcodeData.Localidade)
+	weatherApiResponse, err := g.weatherApiRepository.GetWeatherData(zipcodeData.Localidade)
 
 	if err != nil {
 		return nil, err
@@ -57,79 +33,11 @@ func GetTemperatureByZipcode(zipcode string) (*GetTemperatureByZipcodeResponse, 
 	fahrenheitTemp := (celsiusTemp * 1.8) + 32
 	kelvinTemp := celsiusTemp + 273
 
-	getTemperatureByZipcodeResponse := GetTemperatureByZipcodeResponse{
+	getTemperatureByZipcodeResponse := entity.GetTemperatureByZipcodeResponse{
 		TempC: celsiusTemp,
 		TempF: fahrenheitTemp,
 		TempK: kelvinTemp,
 	}
 
 	return &getTemperatureByZipcodeResponse, nil
-}
-
-func getZipcodeData(zipcode string) (*ViaCepResponse, *ErrorResponse) {
-	url := "http://viacep.com.br/ws/" + url.PathEscape(zipcode) + "/json"
-	resp, err := http.Get(url)
-
-	if err != nil {
-		return nil, buildErrorResponse(http.StatusInternalServerError, err)
-	}
-
-	if resp.StatusCode == 404 {
-		return nil, buildErrorResponse(http.StatusUnprocessableEntity, errors.New("can not find zipcode"))
-	}
-
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-
-	if err != nil {
-		return nil, buildErrorResponse(http.StatusInternalServerError, err)
-	}
-
-	var viaCepResponse ViaCepResponse
-	err = json.Unmarshal(body, &viaCepResponse)
-
-	if err != nil {
-		return nil, buildErrorResponse(http.StatusInternalServerError, err)
-
-	}
-
-	return &viaCepResponse, nil
-}
-
-func getWeatherData(city string) (*WeatherApiResponse, *ErrorResponse) {
-	key := os.Getenv("WEATHER_API_KEY")
-	url := fmt.Sprintf("https://api.weatherapi.com/v1/current.json?key=%s&q=%s&aqi=no", url.QueryEscape(key), url.QueryEscape(city))
-	resp, err := http.Get(url)
-
-	if err != nil {
-		return nil, buildErrorResponse(http.StatusInternalServerError, err)
-	}
-
-	if resp.StatusCode == 400 {
-		errorMessage := fmt.Sprintf("can not find weather for city %s", city)
-		return nil, buildErrorResponse(http.StatusNotFound, errors.New(errorMessage))
-	}
-
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-
-	if err != nil {
-		return nil, buildErrorResponse(http.StatusInternalServerError, err)
-	}
-
-	var weatherApiResponse WeatherApiResponse
-	err = json.Unmarshal(body, &weatherApiResponse)
-
-	if err != nil {
-		return nil, buildErrorResponse(http.StatusInternalServerError, err)
-	}
-
-	return &weatherApiResponse, nil
-}
-
-func buildErrorResponse(statusCode int, err error) *ErrorResponse {
-	return &ErrorResponse{
-		StatusCode: statusCode,
-		Message:    err.Error(),
-	}
 }
