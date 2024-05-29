@@ -30,7 +30,7 @@ curl http://localhost:8080/01153000/temperature
 
 ### GCP
 ```bash
-curl http://localhost:8080/01153000/temperature
+curl https://golang-temp-by-zipcode-ea5pytw5bq-uc.a.run.app/01153000/temperature
 ```
 
 The path parameter zipcode (01153000 on example), is mandatory
