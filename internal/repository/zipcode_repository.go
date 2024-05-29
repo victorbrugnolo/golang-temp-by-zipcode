@@ -23,10 +23,6 @@ func (r *ZipCodeRepository) GetZipcodeData(zipcode string) (*entity.ZipcodeDataR
 		return nil, entity.BuildErrorResponse(http.StatusInternalServerError, err)
 	}
 
-	if resp.StatusCode == 404 {
-		return nil, entity.BuildErrorResponse(http.StatusUnprocessableEntity, errors.New("can not find zipcode"))
-	}
-
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 
@@ -40,6 +36,10 @@ func (r *ZipCodeRepository) GetZipcodeData(zipcode string) (*entity.ZipcodeDataR
 	if err != nil {
 		return nil, entity.BuildErrorResponse(http.StatusInternalServerError, err)
 
+	}
+
+	if viaCepResponse.Error {
+		return nil, entity.BuildErrorResponse(http.StatusNotFound, errors.New("can not find zipcode"))
 	}
 
 	return &viaCepResponse, nil
