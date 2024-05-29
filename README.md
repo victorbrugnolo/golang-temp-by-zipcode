@@ -10,6 +10,8 @@ go mod tidy
 
 ### Running
 
+You must configure your (Weather API)[https://weatherapi.com/] key on `.env` file like the example `.env.example`
+
 ```bash
 go run cmd/main.go
 ```
