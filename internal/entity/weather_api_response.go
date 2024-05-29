@@ -1,7 +1,9 @@
 package entity
 
+type Current struct {
+	TempC float64 `json:"temp_c"`
+}
+
 type WeatherApiResponse struct {
-	Current struct {
-		TempC float64 `json:"temp_c"`
-	} `json:"current"`
+	Current `json:"current"`
 }
